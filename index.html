@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Centerstage – Employee Feedback Portal</title>
+<style>
+  :root {
+    --navy: #1F3864;
+    --blue: #2E75B6;
+    --purple: #7B2D8B;
+    --green: #375623;
+    --green-bg: #E2EFDA;
+    --yellow-bg: #FFF2CC;
+    --yellow: #997700;
+    --red-bg: #FCE4D6;
+    --red: #C00000;
+    --light: #D9E1F2;
+    --white: #FFFFFF;
+    --gray: #F5F7FB;
+    --border: #C8D4E8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: var(--gray); color: #222; }
+
+  /* ── HEADER ─────────────────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+    color: white; padding: 28px 40px 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  }
+  header h1 { font-size: 1.7rem; letter-spacing: .5px; }
+  header p  { font-size: .88rem; opacity: .85; margin-top: 4px; }
+  .header-meta { display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 4px 14px; font-size: .8rem;
+  }
+
+  /* ── TABS ────────────────────────────────────────────────────── */
+  .tabs { display: flex; background: var(--navy); padding: 0 40px; gap: 4px; }
+  .tab-btn {
+    background: none; border: none; color: rgba(255,255,255,0.6);
+    padding: 12px 20px; cursor: pointer; font-size: .88rem;
+    border-bottom: 3px solid transparent; transition: all .2s;
+  }
+  .tab-btn:hover { color: white; }
+  .tab-btn.active { color: white; border-bottom-color: #FFD700; font-weight: bold; }
+  .tab-content { display: none; padding: 28px 40px; }
+  .tab-content.active { display: block; }
+
+  /* ── SECTION TITLE ───────────────────────────────────────────── */
+  .section-title {
+    font-size: 1.05rem; font-weight: bold; color: var(--navy);
+    border-left: 4px solid var(--blue); padding-left: 10px; margin-bottom: 18px;
+  }
+
+  /* ── CARDS ───────────────────────────────────────────────────── */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .emp-card {
+    background: white; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.09); cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .emp-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.14); }
+  .card-header {
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-header .emp-name { font-size: 1rem; font-weight: bold; }
+  .card-header .emp-id   { font-size: .78rem; opacity: .8; margin-top: 2px; }
+  .score-badge {
+    width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 1.1rem; font-weight: bold;
+    border: 3px solid rgba(255,255,255,0.4);
+  }
+  .card-body { padding: 14px 18px; }
+  .metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .metric-label { font-size: .78rem; color: #555; }
+  .metric-bar-wrap { flex: 1; margin: 0 10px; background: #eee; border-radius: 4px; height: 7px; overflow: hidden; }
+  .metric-bar { height: 100%; border-radius: 4px; transition: width .6s ease; }
+  .metric-value { font-size: .78rem; font-weight: bold; min-width: 28px; text-align: right; }
+  .card-footer { padding: 10px 18px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .ack-status { font-size: .75rem; font-weight: bold; padding: 3px 10px; border-radius: 12px; }
+  .ack-pending { background: var(--red-bg); color: var(--red); }
+  .ack-done    { background: var(--green-bg); color: var(--green); }
+  .remarks-text { font-size: .75rem; color: #666; font-style: italic; background: #F9FAFC; padding: 8px 10px; border-radius: 6px; border-left: 3px solid var(--blue); margin-top: 10px; }
+
+  /* ── TABLE ───────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  table { width: 100%; border-collapse: collapse; background: white; font-size: .82rem; }
+  thead th {
+    background: var(--navy); color: white; padding: 10px 12px;
+    text-align: center; white-space: nowrap; position: sticky; top: 0;
+  }
+  thead tr:first-child th { background: var(--blue); font-size: .78rem; }
+  tbody tr:nth-child(even) { background: var(--light); }
+  tbody td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); }
+  tbody td:nth-child(5) { text-align: left; }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: .74rem; font-weight: bold;
+  }
+  .pill-green  { background: var(--green-bg); color: var(--green); }
+  .pill-yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .pill-red    { background: var(--red-bg); color: var(--red); }
+
+  /* ── MODAL ───────────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 1000; justify-content: center; align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 14px; max-width: 680px; width: 95%;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    color: white; padding: 18px 24px; border-radius: 14px 14px 0 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .modal-header h2 { font-size: 1.1rem; }
+  .modal-close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1; }
+  .modal-body { padding: 24px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .detail-card { background: var(--gray); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); }
+  .detail-card .dc-label { font-size: .72rem; color: #777; margin-bottom: 4px; }
+  .detail-card .dc-val   { font-size: 1rem; font-weight: bold; color: var(--navy); }
+  .detail-card .dc-sub   { font-size: .75rem; color: #888; margin-top: 2px; }
+  .ack-box { background: #F0F4FF; border: 1px solid #B8C8EE; border-radius: 10px; padding: 16px; margin-top: 16px; }
+  .ack-box h3 { font-size: .9rem; color: var(--navy); margin-bottom: 10px; }
+  .ack-check-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; font-size: .82rem; }
+  .ack-check-row input[type=checkbox] { margin-top: 2px; accent-color: var(--blue); width: 16px; height: 16px; flex-shrink: 0; }
+  .ack-btn {
+    width: 100%; padding: 12px; background: linear-gradient(135deg, var(--blue), var(--navy));
+    color: white; border: none; border-radius: 8px; font-size: .95rem; font-weight: bold;
+    cursor: pointer; margin-top: 12px; transition: opacity .2s;
+  }
+  .ack-btn:hover { opacity: .9; }
+  .ack-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .ack-confirmed { text-align: center; padding: 14px; background: var(--green-bg); border-radius: 8px; color: var(--green); font-weight: bold; margin-top: 10px; }
+
+  /* ── ACK TRACKER TABLE ───────────────────────────────────────── */
+  .tracker-card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.09); overflow: hidden; }
+  .tracker-header { background: var(--purple); color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .tracker-header h2 { font-size: 1rem; }
+  .stats-row { display: flex; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat-box { text-align: center; flex: 1; min-width: 80px; }
+  .stat-num { font-size: 1.6rem; font-weight: bold; }
+  .stat-label { font-size: .72rem; color: #777; margin-top: 2px; }
+  .export-btn {
+    background: var(--green-bg); color: var(--green); border: 1px solid #A9D18E;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: .82rem; font-weight: bold;
+  }
+  .progress-bar-outer { background: #eee; border-radius: 10px; height: 10px; overflow: hidden; margin: 4px 0; }
+  .progress-bar-inner { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--blue), var(--purple)); transition: width .6s; }
+
+  @media (max-width: 600px) {
+    header { padding: 18px 16px 14px; }
+    .tabs  { padding: 0 8px; }
+    .tab-content { padding: 16px; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 Centerstage – Employee Performance Feedback Portal</h1>
+  <p>Monthly performance review and acknowledgement system</p>
+  <div class="header-meta">
+    <span class="badge">📅 January 2026</span>
+    <span class="badge">📍 Location: SHLG</span>
+    <span class="badge">👥 4 Employees</span>
+    <span class="badge" id="ack-badge">⏳ 0 / 4 Acknowledged</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="switchTab('cards')">🗂 Feedback Cards</button>
+  <button class="tab-btn" onclick="switchTab('table')">📋 Full Data Table</button>
+  <button class="tab-btn" onclick="switchTab('tracker')">✅ Acknowledgement Tracker</button>
+</nav>
+
+<!-- ── TAB: CARDS ─────────────────────────────────────────────── -->
+<div id="tab-cards" class="tab-content active">
+  <div class="section-title">Employee Feedback Cards – Click a card to view details & acknowledge</div>
+  <div class="cards-grid" id="cards-container"></div>
+</div>
+
+<!-- ── TAB: TABLE ────────────────────────────────────────────── -->
+<div id="tab-table" class="tab-content">
+  <div class="section-title">Complete Metric Data – January 2026</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th colspan="6">Employee Info</th>
+          <th colspan="3">Attendance</th>
+          <th colspan="4">TOS (Wt:5)</th>
+          <th colspan="2">UPL (Wt:5)</th>
+          <th colspan="4">QC (Wt:25)</th>
+          <th colspan="3">PKT (Wt:10)</th>
+          <th colspan="2">Summary</th>
+        </tr>
+        <tr>
+          <th>#</th><th>Workflow</th><th>Loc</th><th>Emp ID</th><th>Name</th><th>Role</th>
+          <th>Allotted</th><th>Leaves</th><th>Working</th>
+          <th>TOS Tgt</th><th>TOS Ach</th><th>TOS%</th><th>TOS Wtg</th>
+          <th>UPL Cnt</th><th>UPL Wtg</th>
+          <th>QC Tgt</th><th>QC Ach</th><th>QC Score</th><th>QC Wtg</th>
+          <th>PKT</th><th>PKT Score</th><th>PKT Wtg</th>
+          <th>Total</th><th>Ack</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── TAB: TRACKER ──────────────────────────────────────────── -->
+<div id="tab-tracker" class="tab-content">
+  <div class="tracker-card">
+    <div class="tracker-header">
+      <h2>🔔 Acknowledgement Tracker – January 2026</h2>
+      <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total" style="color:var(--blue)">4</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-ack" style="color:var(--green)">0</div>
+        <div class="stat-label">Acknowledged</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-pending" style="color:var(--red)">4</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-box" style="flex:2; text-align:left; padding-left:8px;">
+        <div class="stat-label" style="margin-bottom:4px;">Progress</div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="progress-bar" style="width:0%"></div>
+        </div>
+        <div style="font-size:.72rem;color:#888;margin-top:2px;" id="progress-text">0% acknowledged</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Emp ID</th><th>Name</th><th>Month</th>
+            <th>Total Score</th><th>Band</th><th>Status</th><th>Acknowledged On</th>
+          </tr>
+        </thead>
+        <tbody id="tracker-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="modal-name"></h2>
+        <div style="font-size:.8rem;opacity:.8;margin-top:3px" id="modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const employees = [
+  { id:"I2759",  name:"Dashisha Kharlukhi",      role:"Operator", workflow:"Centerstage", loc:"SHLG",
+    allotted:25, leaves:7,   working:18,
+    tosTgt:126,   tosAch:126.06, tosPct:100.05, tosScore:5, tosWtg:5,
+    upl:0, uplWtg:5,
+    tptTgt:"NA", tptAch:"NA", tptScore:"NA", tptWtg:"NA",
+    qcTgt:0.995, qcAch:0.9913, qcScore:4, qcWtg:20,
+    pkt:0.800, pktScore:3, pktWtg:6,
+    total:61, remarks:"Need to improve Quality and PKT score." },
+  { id:"I7475",  name:"Magrisha Marwein",         role:"Operator", workflow:"Centerstage", loc:"SHLG",
+    allotted:11, leaves:0,   working:11,
+    tosTgt:77,    tosAch:77.15,  tosPct:100.19, tosScore:5, tosWtg:5,
+    upl:0, uplWtg:5,
+    tptTgt:"NA", tptAch:"NA", tptScore:"NA", tptWtg:"NA",
+    qcTgt:0.995, qcAch:1.000, qcScore:5, qcWtg:25,
+    pkt:0.5375, pktScore:1, pktWtg:2,
+    total:62, remarks:"Need to improve PKT score on an urgent basis." },
+  { id:"I2678",  name:"Bansansaralang Nongrum",   role:"Operator", workflow:"Centerstage", loc:"SHLG",
+    allotted:25, leaves:5,   working:20,
+    tosTgt:140,   tosAch:119.29, tosPct:85.21, tosScore:2, tosWtg:2,
+    upl:3, uplWtg:0,
+    tptTgt:"NA", tptAch:"NA", tptScore:"NA", tptWtg:"NA",
+    qcTgt:0.995, qcAch:0.9822, qcScore:3, qcWtg:18,
+    pkt:0.725, pktScore:2, pktWtg:4,
+    total:24, remarks:"Need to improve quality score, reduce egregious errors, improve PKT score and avoid unplanned absence." },
+  { id:"I11737", name:"Baphylla B. Khongwir",     role:"Operator", workflow:"Centerstage", loc:"SHLG",
+    allotted:25, leaves:2.5, working:22.5,
+    tosTgt:157.5, tosAch:153.04, tosPct:97.17, tosScore:4, tosWtg:4,
+    upl:0, uplWtg:5,
+    tptTgt:"NA", tptAch:"NA", tptScore:"NA", tptWtg:"NA",
+    qcTgt:0.995, qcAch:0.9883, qcScore:3, qcWtg:18,
+    pkt:0.650, pktScore:1, pktWtg:2,
+    total:44, remarks:"Need to improve quality score, reduce egregious errors and improve PKT score." },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const ackState = {};
+employees.forEach(e => { ackState[e.id] = { status:"Pending", ts:"" }; });
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function band(score) {
+  if (score >= 70) return { label:"🏆 Excellent", cls:"pill-green" };
+  if (score >= 55) return { label:"✅ Good",      cls:"pill-green" };
+  if (score >= 35) return { label:"⚠️ Average",   cls:"pill-yellow"};
+  return             { label:"❌ Poor",           cls:"pill-red"   };
+}
+function scoreFill(score, max) {
+  const p = score/max;
+  if (p >= .8) return "#70AD47";
+  if (p >= .5) return "#FFC000";
+  return "#FF4B4B";
+}
+function totalColor(score) {
+  if (score >= 55) return "#70AD47";
+  if (score >= 35) return "#FFC000";
+  return "#FF4B4B";
+}
+
+// ── RENDER CARDS ──────────────────────────────────────────────────────────────
+function renderCards() {
+  const container = document.getElementById("cards-container");
+  container.innerHTML = "";
+  employees.forEach(emp => {
+    const ack = ackState[emp.id];
+    const b = band(emp.total);
+    const metrics = [
+      { label:"TOS", val:emp.tosWtg, max:5 },
+      { label:"UPL", val:emp.uplWtg, max:5 },
+      { label:"QC",  val:emp.qcWtg,  max:25 },
+      { label:"PKT", val:emp.pktWtg, max:10 },
+    ];
+    const metricsHTML = metrics.map(m => `
+      <div class="metric-row">
+        <span class="metric-label">${m.label}</span>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar" style="width:${(m.val/m.max)*100}%;background:${scoreFill(m.val,m.max)}"></div>
+        </div>
+        <span class="metric-value" style="color:${scoreFill(m.val,m.max)}">${m.val}/${m.max}</span>
+      </div>`).join("");
+
+    container.innerHTML += `
+      <div class="emp-card" onclick="openModal('${emp.id}')">
+        <div class="card-header">
+          <div>
+            <div class="emp-name">${emp.name}</div>
+            <div class="emp-id">${emp.id} · ${emp.role}</div>
+          </div>
+          <div class="score-badge" style="background:${totalColor(emp.total)};color:white">${emp.total}</div>
+        </div>
+        <div class="card-body">
+          ${metricsHTML}
+          <div class="remarks-text">${emp.remarks}</div>
+        </div>
+        <div class="card-footer">
+          <span class="${b.cls} pill">${b.label}</span>
+          <span class="ack-status ${ack.status==='Acknowledged'?'ack-done':'ack-pending'}">
+            ${ack.status==='Acknowledged'?'✅ Acknowledged':'⏳ Pending Ack'}
+          </span>
+        </div>
+      </div>`;
+  });
+}
+
+// ── RENDER TABLE ──────────────────────────────────────────────────────────────
+function renderTable() {
+  const tb = document.getElementById("table-body");
+  tb.innerHTML = "";
+  employees.forEach((emp,i) => {
+    const ack = ackState[emp.id];
+    const pillClass = emp.total>=55?"pill-green":(emp.total>=35?"pill-yellow":"pill-red");
+    tb.innerHTML += `
+      <tr>
+        <td>${i+1}</td><td>${emp.workflow}</td><td>${emp.loc}</td>
+        <td><b>${emp.id}</b></td><td style="text-align:left">${emp.name}</td><td>${emp.role}</td>
+        <td>${emp.allotted}</td><td>${emp.leaves}</td><td>${emp.working}</td>
+        <td>${emp.tosTgt}</td><td>${emp.tosAch}</td>
+        <td>${emp.tosPct.toFixed(2)}%</td>
+        <td><span class="pill ${emp.tosScore>=4?'pill-green':(emp.tosScore>=2?'pill-yellow':'pill-red')}">${emp.tosWtg}</span></td>
+        <td>${emp.upl}</td>
+        <td><span class="pill ${emp.uplWtg>=4?'pill-green':(emp.uplWtg>=2?'pill-yellow':'pill-red')}">${emp.uplWtg}</span></td>
+        <td>${emp.qcTgt}</td><td>${emp.qcAch.toFixed(4)}</td>
+        <td><span class="pill ${emp.qcScore>=4?'pill-green':(emp.qcScore>=2?'pill-yellow':'pill-red')}">${emp.qcScore}</span></td>
+        <td><span class="pill ${emp.qcWtg>=20?'pill-green':(emp.qcWtg>=12?'pill-yellow':'pill-red')}">${emp.qcWtg}</span></td>
+        <td>${emp.pkt.toFixed(4)}</td><td>${emp.pktScore}</td>
+        <td><span class="pill ${emp.pktWtg>=8?'pill-green':(emp.pktWtg>=5?'pill-yellow':'pill-red')}">${emp.pktWtg}</span></td>
+        <td><b class="pill ${pillClass}">${emp.total}</b></td>
+        <td><span class="pill ${ack.status==='Acknowledged'?'pill-green':'pill-red'}">${ack.status}</span></td>
+      </tr>`;
+  });
+}
+
+// ── RENDER TRACKER ────────────────────────────────────────────────────────────
+function renderTracker() {
+  const tb = document.getElementById("tracker-body");
+  tb.innerHTML = "";
+  let ackCount = 0;
+  employees.forEach(emp => {
+    const ack = ackState[emp.id];
+    if (ack.status==='Acknowledged') ackCount++;
+    const b = band(emp.total);
+    tb.innerHTML += `
+      <tr>
+        <td><b>${emp.id}</b></td>
+        <td>${emp.name}</td>
+        <td>January 2026</td>
+        <td><b class="pill ${emp.total>=55?'pill-green':(emp.total>=35?'pill-yellow':'pill-red')}">${emp.total}</b></td>
+        <td><span class="pill ${b.cls}">${b.label}</span></td>
+        <td><span class="pill ${ack.status==='Acknowledged'?'pill-green':'pill-red'}">${ack.status}</span></td>
+        <td style="font-size:.78rem;color:#555">${ack.ts || '—'}</td>
+      </tr>`;
+  });
+  // Stats
+  document.getElementById("stat-ack").textContent = ackCount;
+  document.getElementById("stat-pending").textContent = employees.length - ackCount;
+  const pct = Math.round((ackCount / employees.length)*100);
+  document.getElementById("progress-bar").style.width = pct + "%";
+  document.getElementById("progress-text").textContent = pct + "% acknowledged";
+  document.getElementById("ack-badge").textContent = `✅ ${ackCount} / ${employees.length} Acknowledged`;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(empId) {
+  const emp = employees.find(e => e.id === empId);
+  const ack = ackState[empId];
+  const b   = band(emp.total);
+  document.getElementById("modal-name").textContent = emp.name;
+  document.getElementById("modal-sub").textContent  = `${emp.id} · ${emp.role} · ${emp.workflow} · ${emp.loc}`;
+
+  const alreadyAcked = ack.status === 'Acknowledged';
+  document.getElementById("modal-body").innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-card"><div class="dc-label">Total Score</div>
+        <div class="dc-val" style="color:${totalColor(emp.total)}">${emp.total} / 45</div>
+        <div class="dc-sub"><span class="pill ${b.cls}">${b.label}</span></div></div>
+      <div class="detail-card"><div class="dc-label">Working Days</div>
+        <div class="dc-val">${emp.working}</div>
+        <div class="dc-sub">of ${emp.allotted} allotted</div></div>
+      <div class="detail-card"><div class="dc-label">TOS Score (Wt: 5)</div>
+        <div class="dc-val">${emp.tosWtg} / 5</div>
+        <div class="dc-sub">${emp.tosAch} hrs / ${emp.tosTgt} hrs (${emp.tosPct.toFixed(2)}%)</div></div>
+      <div class="detail-card"><div class="dc-label">UPL Leave (Wt: 5)</div>
+        <div class="dc-val">${emp.uplWtg} / 5</div>
+        <div class="dc-sub">Unplanned leaves: ${emp.upl}</div></div>
+      <div class="detail-card"><div class="dc-label">QC Score (Wt: 25)</div>
+        <div class="dc-val">${emp.qcWtg} / 25</div>
+        <div class="dc-sub">Achieved: ${emp.qcAch.toFixed(4)} vs Target: ${emp.qcTgt}</div></div>
+      <div class="detail-card"><div class="dc-label">PKT Score (Wt: 10)</div>
+        <div class="dc-val">${emp.pktWtg} / 10</div>
+        <div class="dc-sub">PKT: ${emp.pkt.toFixed(4)} | Raw score: ${emp.pktScore}</div></div>
+    </div>
+    <div style="background:#FFF8E7;border:1px solid #FFD966;border-radius:8px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:.75rem;font-weight:bold;color:#7A5800;margin-bottom:5px;">📝 Manager Remarks</div>
+      <div style="font-size:.85rem;color:#333;">${emp.remarks}</div>
+    </div>
+    <div class="ack-box" id="ack-box-${empId}">
+      <h3>📋 Acknowledgement</h3>
+      ${alreadyAcked ? `<div class="ack-confirmed">✅ Acknowledged on ${ack.ts}</div>` : `
+      <div class="ack-check-row"><input type="checkbox" id="chk1-${empId}" onchange="checkAck('${empId}')">
+        <label for="chk1-${empId}">I have reviewed my performance metrics for January 2026.</label></div>
+      <div class="ack-check-row"><input type="checkbox" id="chk2-${empId}" onchange="checkAck('${empId}')">
+        <label for="chk2-${empId}">I understand the feedback and the areas of improvement highlighted.</label></div>
+      <div class="ack-check-row"><input type="checkbox" id="chk3-${empId}" onchange="checkAck('${empId}')">
+        <label for="chk3-${empId}">I acknowledge that this report reflects my performance accurately for the period.</label></div>
+      <button class="ack-btn" id="ack-btn-${empId}" disabled onclick="acknowledge('${empId}')">
+        ✅ Confirm Acknowledgement
+      </button>`}
+    </div>`;
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal() { document.getElementById("modal").classList.remove("open"); }
+function checkAck(id) {
+  const all = ['chk1','chk2','chk3'].every(k => document.getElementById(`${k}-${id}`)?.checked);
+  document.getElementById(`ack-btn-${id}`).disabled = !all;
+}
+function acknowledge(id) {
+  const ts = new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  ackState[id] = { status:'Acknowledged', ts };
+  document.getElementById(`ack-box-${id}`).innerHTML =
+    `<h3>📋 Acknowledgement</h3><div class="ack-confirmed">✅ Acknowledged on ${ts}</div>`;
+  renderCards(); renderTable(); renderTracker();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [["Emp ID","Name","Month","Total Score","Band","Status","Acknowledged On"]];
+  employees.forEach(emp => {
+    const ack = ackState[emp.id];
+    const b = band(emp.total);
+    rows.push([emp.id, emp.name, "January 2026", emp.total, b.label, ack.status, ack.ts||""]);
+  });
+  const csv = rows.map(r => r.map(v=>`"${v}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv," + encodeURIComponent(csv);
+  a.download = "Ack_Tracker_Jan2026.csv";
+  a.click();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById("modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal")) closeModal();
+});
+renderCards(); renderTable(); renderTracker();
+</script>
+</body>
+</html>
